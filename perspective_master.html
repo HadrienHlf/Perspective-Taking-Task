@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>My experiment</title>
+    <script src="jatos.js"></script>
+    <script src="jspsych/jspsych.js"></script>
+    <script src="jspsych/plugin-html-keyboard-response.js"></script>
+    <script src="jspsych/plugin-image-keyboard-response.js"></script>
+    <script src="jspsych/plugin-preload.js"></script>
+    <script src="seqfile.js"></script>
+    <link href="jspsych/jspsych.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body></body>
+  <script>
+
+     /* initialize jsPsych */
+     var jsPsych = initJsPsych({
+      on_finish: function() {
+                    //jsPsych.data.displayData();
+                    // submit data to JATOS
+                    var resJson = jsPsych.data.get().json();
+                    jatos.submitResultData(resJson,function(){
+                    // redirect them to download the consent form if they want it
+                    sesdat = jatos.studySessionData; 
+                    batchdata = jatos.batchSession.getAll();
+                    indx = batchdata.ids.indexOf(sesdat.id);
+                    batchdata.donecomponents[indx][0] = true;
+                    jatos.batchSession.setAll(batchdata); 
+                    })
+                }
+    });
+
+    //var num_sequencee = 21;
+    /*seqpath = 'Sequences/seq21.js'; // get a sequence file based on the batch session data
+    var s = document.createElement('script');
+    s.src = seqpath; s.type = 'text/javascript';
+    document.getElementsByTagName('head')[0].appendChild(s); // append the seq file to the head as a script src*/
+
+    /* define variables */
+
+
+
+
+
+
+
+
+
+    /* start the experiment */
+    jatos.onLoad(function(){
+
+      var updateflag; var tmp;
+            batchdata = jatos.batchSession.getAll();
+            if(!jatos.batchSession.defined('/whichseq')){
+                batchdata.whichseq = 1; 
+                batchdata.blockorder = 1; 
+                jatos.batchSession.setAll(batchdata)
+            }else{
+                batchdata.whichseq += 1; if(batchdata.whichseq>200){batchdata.whichseq=1};
+                batchdata.blockorder = (batchdata.whichseq%2);
+                jatos.batchSession.setAll(batchdata)
+            }
+
+            var checkresetbatchdata = function(e){ // this reverts the batch data if the participant doesn't finish the study, in order to maintain condition balance
+                if(!finished_study){
+                    batchdata = jatos.batchSession.getAll();
+                    batchdata.whichseq-=1; 
+                    if(batchdata.whichseq<1){
+                        delete(batchdata.whichseq); delete(batchdata.blockorder);
+                    }else{
+                        batchdata.blockorder = (batchdata.whichseq%2);
+                    }; // assume we won't get 200 participants for now
+                    
+                    jatos.batchSession.setAll(batchdata)
+                }
+            }
+
+    window.onbeforeunload = checkresetbatchdata;
+    
+
+    whichseq = batchdata.whichseq;
+    blockorder = batchdata.blockorder;
+    init_level = batchdata.init_level;
+
+    var keys=["k","j"];
+    
+    var true_a = keys[blockorder];
+    var false_a = keys[1-blockorder];
+
+    var testseqq = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus:`
+    <p>Run Number ${whichseq.toString()}</p>
+    `,
+    post_trial_gap: 200
+    };
+
+
+    /* preload images */
+    var preload = {
+    type: jsPsychPreload,
+    images: ['Avatars/Avatar.00.png','Avatars/Avatar.01.png','Avatars/Avatar.02.png',
+    'Avatars/Avatar.10.png','Avatars/Avatar.11.png','Avatars/Avatar.12.png',
+    'Avatars/Avatar.20.png','Avatars/Avatar.21.png','Avatars/Avatar.30.png','Avatars/Avatar.03.png',
+    'Avatars/Avatar.00 copie.png','Avatars/Avatar.01 copie.png','Avatars/Avatar.02 copie.png',
+    'Avatars/Avatar.10 copie.png','Avatars/Avatar.11 copie.png','Avatars/Avatar.12 copie.png',
+    'Avatars/Avatar.20 copie.png','Avatars/Avatar.21 copie.png','Avatars/Avatar.30 copie.png','Avatars/Avatar.03 copie.png',
+    'Examples/ex 1.png','Examples/example_1.png','Examples/example_2.png','Examples/example_3.png','Examples/example_4.png'
+    ]
+    };
+    
+
+    var welcome = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: "Welcome to the experiment. Press any key to begin."
+    };
+    
+    var instructions1 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p>In this task you will see an image of someone in a room, 
+    with red circles on the walls. Sometimes your job 
+    will be to answer a question about the number of red circles YOU 
+    can see. Other times, your job will be to answer a question 
+    about the number of red circles THE PERSON in the room can see.</p>
+    <img src="Examples/ex 1.png"></img>
+    <p> Press any key to continue </p> 
+    
+   `,
+    post_trial_gap: 200
+    };
+    
+    var instructions2 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p> At the start of each trial, you will see the word YOU or
+    the word THEM.  If you see the word YOU then your job is to 
+    answer a question about the number of red circles YOU can see. 
+    If you see the word THEM, then your job is to answer a question
+    about the number of red circles THEY can see. </p> 
+    <p> After you see the word YOU or THEM, you will see a number
+    (0, 1, 2, or 3) and then the picture of the person in the room. 
+    If the number appears after the word YOU, then your job is to 
+    answer “yes” or “no” to whether YOU see that exact number of 
+    circles. If the number appears after the word THEM, then your job 
+    is to answer “yes” or “no” to whether THE PERSON in the room can 
+    see that exact number of circles. </p>
+    <p> Press any key to continue </p> 
+   `,
+    post_trial_gap: 200
+    };
+
+    var instructions3 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p> You should press "${true_a}" to answer: “YES, I see that
+    number of circles” or “YES, they see that number of circles”.</p>
+    <p>You should 
+    press "${false_a}" to answer: “NO, I don’t see that number of 
+    circles” or “NO, they don’t see that number of circles”.</p> 
+
+    <p>You should respond as quickly and as accurately as possible.</p>
+    <p> Press any key to continue </p> 
+   `,
+    post_trial_gap: 200
+    };
+
+    var instructions4 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p> To make sure you understand the task, we will walk you through some 
+    examples.  </p> 
+    <p>Remember, there are two things you want to keep track 
+    of in this task. The first is YOU versus THEM. This will tell you
+    what perspective to pay attention to. The second is the number 
+    that comes up after YOU versus THEM. This will tell you the number 
+    of circles to keep an eye out for. Then you will determine 
+    whether that number of circles was correct or incorrect based 
+    on the YOU/THEM instruction.</p> 
+
+    <p> Press any key to move forward through the examples </p> 
+   `,
+    post_trial_gap: 200
+    };
+    
+    var example_cross = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>This cross indicates a trial is about to start</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:60px;">+</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var example_you = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>Here you are being asked whether YOU</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">YOU</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var example_them = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>Here you are being asked whether THEY</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">THEM</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var example_0circle = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>See exactly 0 circles in the room</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">0</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var example_1circle = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>See exactly 1 circle in the room</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">1</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var example_2circle = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>See exactly 2 circles in the room</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">2</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var example_3circle = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+        <p>See exactly 3 circles in the room</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">3</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        `,
+    post_trial_gap: 200
+    };
+    
+    var final_example1 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p>Because you see 3 circles in the room, you would press 
+    the ${false_a}-key to answer, “NO, I don’t see that number of circles”.
+    </p>
+    <img src="Examples/example_1.png"></img>
+        `,
+    post_trial_gap: 200
+      
+    };
+    
+    var final_example2 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p>Because you see 0 circles in the room, you would press 
+    the ${true_a}-key to answer, “YES, I see that number of circles”.
+    </p>
+    <img src="Examples/example_2.png"></img>
+        `,
+    post_trial_gap: 200
+      
+    };
+    
+    var final_example3 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p>Because the person can see only 1 circle in the room (2 are behind them), you would press 
+    the ${false_a}-key to answer, “NO, they do not see that number of circles”.
+    </p>
+    <img src="Examples/example_3.png"></img>
+        `,
+    post_trial_gap: 200
+      
+    };
+    
+    var final_example4 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p>Because the person can see 1 circle in the room (2 are behind them), you would press 
+    the ${true_a}-key to answer, “YES, they see that number of circles”.
+    </p>
+    <img src="Examples/example_4.png"></img>
+        `,
+    post_trial_gap: 200
+      
+    };
+    
+    var all_examples = {
+      timeline: [
+       example_cross, example_you, example_2circle, final_example1,
+       example_cross, example_you, example_0circle, final_example2,
+       example_cross, example_them, example_3circle, final_example3,
+       example_cross, example_them, example_1circle, final_example4,
+      ]
+      
+    };
+    
+    
+    var instructions7 = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+    <p> Now, you will be able to do a bulk of example trials </p>
+    <p> The different steps of each trial will follow one another without you needing to
+    press any key. The only time you will need to press a key is to answer
+    ${true_a} or ${false_a} depending on whether the number of dots is 
+    accurate or not.</p>
+    <p>The keys you will need to press will NOT change during the experiment, and 
+    a reminder will be put under each trial.</p>
+    <p>If you press a wrong answer key, simply continue the experiment.</p>
+    <p>Press any key to start the example trials, and try to answer as quickly and accurately as possible.</p>
+   `,
+    post_trial_gap: 1000
+    };
+
+       //ALL STIMULI
+    //The number after M1 in each image name corresponds to
+    //how many circles are on the left, and how many on the right
+    //e.g.: Avatars.M1.21.png has two on the left and one on the right
+    //all the original images have the avatar face right, the "copie"
+    //ones have them face left
+    
+    var complete_stimuli = [
+      
+      //TRUE COHERENT YOU TRIALS (1)
+      {
+      stimulus:'Avatars/Avatar.00.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '0',
+      },
+      {
+      stimulus:'Avatars/Avatar.00 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '1',
+      },
+      {
+      stimulus:'Avatars/Avatar.01.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '2',
+      },
+      {
+      stimulus:'Avatars/Avatar.01 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '3',
+      },
+      {
+      stimulus:'Avatars/Avatar.02.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '4',
+      },
+      {
+      stimulus:'Avatars/Avatar.02 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '5',
+      },
+      {
+      stimulus:'Avatars/Avatar.03.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '6',
+      },
+      {
+      stimulus:'Avatars/Avatar.03 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '7',
+      },
+      
+      //TRUE COHERENT THEM TRIALS (2)
+      {
+      stimulus:'Avatars/Avatar.00.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '8',
+      },
+      {
+      stimulus:'Avatars/Avatar.00 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '9',
+      },
+      {
+      stimulus:'Avatars/Avatar.01.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '10',
+      },
+      {
+      stimulus:'Avatars/Avatar.01 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '11',
+      },
+      {
+      stimulus:'Avatars/Avatar.02.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '12',
+      },
+      {
+      stimulus:'Avatars/Avatar.02 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '13',
+      },
+      {
+      stimulus:'Avatars/Avatar.03.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '14',
+      },
+      {
+      stimulus:'Avatars/Avatar.03 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '15',
+      },
+      
+      //TRUE INCOHERENT YOU TRIALS (3)
+      {
+      stimulus:'Avatars/Avatar.10.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '16',
+      },
+      {
+      stimulus:'Avatars/Avatar.10 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '17',
+      },
+      {
+      stimulus:'Avatars/Avatar.11.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '18',
+      },
+      {
+      stimulus:'Avatars/Avatar.11 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '19',
+      },
+      {
+      stimulus:'Avatars/Avatar.12.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '20',
+      },
+      {
+      stimulus:'Avatars/Avatar.12 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '21',
+      },
+      {
+      stimulus:'Avatars/Avatar.20.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '22',
+      },
+      {
+      stimulus:'Avatars/Avatar.20 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '23',
+      },
+      {
+      stimulus:'Avatars/Avatar.21.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '24',
+      },
+      {
+      stimulus:'Avatars/Avatar.21 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '25',
+      },
+      {
+      stimulus:'Avatars/Avatar.30.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '26',
+      },
+      {
+      stimulus:'Avatars/Avatar.30 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:true_a,
+      ID: '27',
+      },
+      
+      //TRUE INCOHERENT THEM TRIALS (4)
+      {
+      stimulus:'Avatars/Avatar.10.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '28',
+      },
+      {
+      stimulus:'Avatars/Avatar.10 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '29',
+      },
+      {
+      stimulus:'Avatars/Avatar.11.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '30',
+      },
+      {
+      stimulus:'Avatars/Avatar.11 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '31',
+      },
+      {
+      stimulus:'Avatars/Avatar.12.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '32',
+      },
+      {
+      stimulus:'Avatars/Avatar.12 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:true_a,
+      ID: '33',
+      },
+      {
+      stimulus:'Avatars/Avatar.20.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '34',
+      },
+      {
+      stimulus:'Avatars/Avatar.20 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '35',
+      },
+      {
+      stimulus:'Avatars/Avatar.21.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '36',
+      },
+      {
+      stimulus:'Avatars/Avatar.21 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:true_a,
+      ID: '37',
+      },
+      {
+      stimulus:'Avatars/Avatar.30.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '38',
+      },
+      {
+      stimulus:'Avatars/Avatar.30 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:true_a,
+      ID: '39',
+      },
+      
+      //FALSE COHERENT YOU TRIALS (5)
+      {
+      stimulus:'Avatars/Avatar.00.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '40',
+      },
+      {
+      stimulus:'Avatars/Avatar.00 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '41',
+      },
+      {
+      stimulus:'Avatars/Avatar.01.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '42',
+      },
+      {
+      stimulus:'Avatars/Avatar.01 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '43',
+      },
+      {
+      stimulus:'Avatars/Avatar.02.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '44',
+      },
+      {
+      stimulus:'Avatars/Avatar.02 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '45',
+      },
+      {
+      stimulus:'Avatars/Avatar.03.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '46',
+      },
+      {
+      stimulus:'Avatars/Avatar.03 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '47',
+      },
+      
+      //FALSE COHERENT THEM TRIALS (6)
+      {
+      stimulus:'Avatars/Avatar.00.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '48',
+      },
+      {
+      stimulus:'Avatars/Avatar.00 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '49',
+      },
+      {
+      stimulus:'Avatars/Avatar.01.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '50',
+      },
+      {
+      stimulus:'Avatars/Avatar.01 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '51',
+      },
+      {
+      stimulus:'Avatars/Avatar.02.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '52',
+      },
+      {
+      stimulus:'Avatars/Avatar.02 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '53',
+      },
+      {
+      stimulus:'Avatars/Avatar.03.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '54',
+      },
+      {
+      stimulus:'Avatars/Avatar.03 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '55',
+      },
+      
+      //FALSE INCOHERENT YOU TRIALS (7)
+      {
+      stimulus:'Avatars/Avatar.10.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '56',
+      },
+      {
+      stimulus:'Avatars/Avatar.10 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '57',
+      },
+      {
+      stimulus:'Avatars/Avatar.11.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '58',
+      },
+      {
+      stimulus:'Avatars/Avatar.11 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '59',
+      },
+      {
+      stimulus:'Avatars/Avatar.12.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '60',
+      },
+      {
+      stimulus:'Avatars/Avatar.12 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '61',
+      },
+      {
+      stimulus:'Avatars/Avatar.20.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '62',
+      },
+      {
+      stimulus:'Avatars/Avatar.20 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '63',
+      },
+      {
+      stimulus:'Avatars/Avatar.21.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '64',
+      },
+      {
+      stimulus:'Avatars/Avatar.21 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '65',
+      },
+      {
+      stimulus:'Avatars/Avatar.30.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '66',
+      },
+      {
+      stimulus:'Avatars/Avatar.30 copie.png',
+      pov:'<div style="font-size:40px;">YOU</div>',
+      number:'<div style="font-size:40px;">0</div>',
+      correct_response:false_a,
+      ID: '67',
+      },
+      
+      //FALSE INCOHERENT THEM TRIALS (8)
+      {
+      stimulus:'Avatars/Avatar.10.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '68',
+      },
+      {
+      stimulus:'Avatars/Avatar.10 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">1</div>',
+      correct_response:false_a,
+      ID: '69',
+      },
+      {
+      stimulus:'Avatars/Avatar.11.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '70',
+      },
+      {
+      stimulus:'Avatars/Avatar.11 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '71',
+      },
+      {
+      stimulus:'Avatars/Avatar.12.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '72',
+      },
+      {
+      stimulus:'Avatars/Avatar.12 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '73',
+      },
+      {
+      stimulus:'Avatars/Avatar.20.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '74',
+      },
+      {
+      stimulus:'Avatars/Avatar.20 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">2</div>',
+      correct_response:false_a,
+      ID: '75',
+      },
+      {
+      stimulus:'Avatars/Avatar.21.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '76',
+      },
+      {
+      stimulus:'Avatars/Avatar.21 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '77',
+      },
+      {
+      stimulus:'Avatars/Avatar.30.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '78',
+      },
+      {
+      stimulus:'Avatars/Avatar.30 copie.png',
+      pov:'<div style="font-size:40px;">THEM</div>',
+      number:'<div style="font-size:40px;">3</div>',
+      correct_response:false_a,
+      ID: '79',
+      },
+      
+      ]
+      
+      var cross = {
+      type: jsPsychHtmlKeyboardResponse,
+        
+        stimulus: `
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:60px;">+</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+        `,
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'fixation'}
+    };
+    
+    var blank = {
+      type: jsPsychHtmlKeyboardResponse,
+        stimulus: `
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <div style="font-size:40px;">&emsp;</div>
+        <p>&emsp;</p>
+        <p>&emsp;</p>
+        <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+        `,
+        choices: "NO_KEYS",
+        trial_duration: 500,
+        data: {task: 'blank'}
+    };
+    
+    //EXAMPLE TRIALS
+    var example_trials = {
+      timeline: [cross, blank,
+        
+        //PERSPECTIVE
+        {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus:  function(){
+          var pov=jsPsych.timelineVariable('pov');
+          return `
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          ${pov}
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+          `
+          
+        },
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'pov'}
+        }, blank,
+        
+        //NUMBER
+        {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function(){
+          var number=jsPsych.timelineVariable('number');
+          return `
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          ${number}
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+          `
+          
+        },
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'number'}
+        },blank,
+        
+        //IMAGE
+        {
+        type: jsPsychImageKeyboardResponse,
+        stimulus: jsPsych.timelineVariable('stimulus'),
+        choices: ['j','k'],
+        post_trial_gap: 2000,
+        data: {
+        task: 'example',
+        trial_number: jsPsych.timelineVariable('ID'),
+        correct_response: jsPsych.timelineVariable('correct_response')
+        }
+        },
+        
+        ],
+        timeline_variables:complete_stimuli,
+        sample: {
+          type: 'alternate-groups',
+          groups: [
+          jsPsych.randomization.sampleWithoutReplacement([0,1,2,3,4,5,6,7], 1),
+          jsPsych.randomization.sampleWithoutReplacement([8,9,10,11,12,13,14,15], 1),
+          jsPsych.randomization.sampleWithoutReplacement([16,17,18,19,20,21,22,23,24,25,26,27], 1),
+          jsPsych.randomization.sampleWithoutReplacement([28,29,30,31,32,33,34,35,36,37,38,39], 1),
+          jsPsych.randomization.sampleWithoutReplacement([28,29,30,31,32,33,34,35,36,37,38,39], 1),
+          jsPsych.randomization.sampleWithoutReplacement([40,41,42,43,44,45,46,47], 1),
+          jsPsych.randomization.sampleWithoutReplacement([48,49,50,51,52,53,54,55], 1),
+          jsPsych.randomization.sampleWithoutReplacement([48,49,50,51,52,53,54,55], 1),
+          jsPsych.randomization.sampleWithoutReplacement([56,57,58,59,60,61,62,63,64,65,66,67], 1),
+          jsPsych.randomization.sampleWithoutReplacement([68,69,70,71,72,73,74,75,76,77,78,79], 1),
+          ],  
+          randomize_group_order: true
+          },
+      on_finish: function(data){
+      data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+    }
+    };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    var feedback = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+
+    var trials = jsPsych.data.get().filter({task: 'example'});
+    var correct_trials = trials.filter({correct: true});
+    var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    var rt = Math.round(correct_trials.select('rt').mean());
+
+    return `
+    <p>Your accuracy over these 10 example trials was ${accuracy}%</p>
+    <p>Press any key to continue</p>
+    `;
+
+   }
+   };
+
+
+   var well_done = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+      <p>You have completed the example trials with success!</p>
+      <p>You will now start the actual task.</p>
+      <p>Press any key to continue</p>
+      `
+    }
+
+    var reproceed = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+      <p>You will now go through a second round of example trials before starting the actual task.</p>
+      <p>Press any key to continue</p>
+      `
+    }
+
+    var repro_instructions = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+      <p> As previously, you should press "${true_a}" to answer: “YES, I see that
+      number of circles” or “YES, they see that number of circles”.</p>
+      <p>You should 
+      press "${false_a}" to answer: “NO, I don’t see that number of 
+      circles” or “NO, they don’t see that number of circles”.</p> 
+
+      <p> Please respond as quickly and as accurately as possible and stay focused during the task.</p>
+      <p> Press any key to continue </p> 
+      `,
+    post_trial_gap: 200
+
+    }
+
+    var too_slow_instructions = {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: `
+      <p> You will now start the actual task </p>
+      <p> As previously, you should press "${true_a}" to answer: “YES, I see that
+      number of circles” or “YES, they see that number of circles”.</p>
+      <p>You should 
+      press "${false_a}" to answer: “NO, I don’t see that number of 
+      circles” or “NO, they don’t see that number of circles”.</p> 
+
+      <p> Make sure to answer as quickly as possible, and stay focused during the task.</p>
+      <p> Press any key to continue </p> 
+      `,
+    post_trial_gap: 200
+
+    }
+
+    var new_unacfeedback = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+
+    var trials = jsPsych.data.get().filter({task: 'example'});
+    var correct_trials = trials.filter({correct: true});
+    var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    var rt = Math.round(correct_trials.select('rt').mean());
+
+    return `
+    <p>Your overall accuracy over the 20 example trials was ${accuracy}%</p>
+    <p>You will now start the actual task.</p>
+    `;
+
+   }
+   };
+
+    var if_well_done = {
+      timeline: [well_done, repro_instructions],
+      conditional_function(){
+        var trials = jsPsych.data.get().filter({task: 'example'});
+        var correct_trials = trials.filter({correct: true});
+        var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+        var rt = Math.round(correct_trials.select('rt').mean());
+        if (accuracy>=70 && rt<=5000){
+          return true;
+        } else {
+          return false;
+        }
+
+      }
+    }
+
+    var if_slow = {
+      timeline: [too_slow_instructions],
+      conditional_function(){
+        var trials = jsPsych.data.get().filter({task: 'example'});
+        var correct_trials = trials.filter({correct: true});
+        var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+        var rt = Math.round(correct_trials.select('rt').mean());
+        if (accuracy>=70 && rt>5000){
+          return true;
+        } else {
+          return false;
+        }
+
+      }
+    }
+
+    var if_unaccurate = {
+      timeline: [reproceed, repro_instructions, example_trials, new_unacfeedback, repro_instructions],
+      conditional_function(){
+        var trials = jsPsych.data.get().filter({task: 'example'});
+        var correct_trials = trials.filter({correct: true});
+        var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+        if (accuracy<70){
+          return true;
+        } else {
+          return false;
+        }
+
+      }
+    }
+
+
+
+
+
+
+
+
+
+
+    var pause = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+      var trials = jsPsych.data.get().filter({task: 'response'});
+      var correct_trials = trials.filter({correct: true});
+      var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    return `
+    <p>You have completed the first block of trials with an accuracy of ${accuracy}%.</p> 
+    <p>You may now have a break for a few minutes, you can press any key to initiate the next and last block.</p>
+    `;
+
+   }
+   };
+
+   var bad_pause = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+      var trials = jsPsych.data.get().filter({task: 'response'});
+      var correct_trials = trials.filter({correct: true});
+      var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    return `
+    <p>You have completed the first block of trials with an accuracy of ${accuracy}%.</p> 
+    <p>Make sure to stay focused during the task and answer accurately.</p>
+    <p>You may now have a break for a few minutes, you can press any key to initiate the next and last block.</p>
+    `;
+
+   }
+   };
+
+   var slow_pause = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+      var trials = jsPsych.data.get().filter({task: 'response'});
+      var correct_trials = trials.filter({correct: true});
+      var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    return `
+    <p>You have completed the first block of trials with an accuracy of ${accuracy}%.</p> 
+    <p>Make sure to answer as quickly as you can during the rest of the task.</p>
+    <p>You may now have a break for a few minutes, you can press any key to initiate the next and last block.</p>
+    `;
+
+   }
+   };
+
+   var if_well_done_pause = {
+      timeline: [pause],
+      conditional_function(){
+        var trials = jsPsych.data.get().filter({task: 'response'});
+        var correct_trials = trials.filter({correct: true});
+        var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+        var rt = Math.round(correct_trials.select('rt').mean());
+        if (accuracy>=70 && rt<=5000){
+          return true;
+        } else {
+          return false;
+        }
+
+      }
+    }
+
+    var if_slow_pause = {
+      timeline: [slow_pause],
+      conditional_function(){
+        var trials = jsPsych.data.get().filter({task: 'response'});
+        var correct_trials = trials.filter({correct: true});
+        var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+        var rt = Math.round(correct_trials.select('rt').mean());
+        if (accuracy>=70 && rt>5000){
+          return true;
+        } else {
+          return false;
+        }
+
+      }
+    }
+
+    var if_unaccurate_pause = {
+      timeline: [bad_pause],
+      conditional_function(){
+        var trials = jsPsych.data.get().filter({task: 'response'});
+        var correct_trials = trials.filter({correct: true});
+        var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+        if (accuracy<70){
+          return true;
+        } else {
+          return false;
+        }
+
+      }
+    }
+
+
+   var new_trial = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+
+
+    return `
+    <p>You will now start a second block of the exact same task</p>
+    <p>As previously, you should press <strong>${true_a}</strong> 
+    when the number is accurate and <strong>${false_a}</strong> when it is false</p>
+    <p>Press any key to initiate the second block.</p>
+    `;
+
+   }
+   };
+
+    var end_block = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+
+    var trials = jsPsych.data.get().filter({task: 'response'});
+    var correct_trials = trials.filter({correct: true});
+    var accuracy = Math.round(correct_trials.count() / trials.count() * 100);
+    var rt = Math.round(correct_trials.select('rt').mean());
+
+    return `
+      <p>The task is now over.</p>
+      <p>Thank you very much for your participation!</p>
+      <p>You responded correctly on ${accuracy}% of the ${trials.count()} trials.</p>
+      <p>Press any key to finish.</p>`;
+
+   }
+   };
+
+   var nice_end_block = {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: function() {
+
+
+    return `
+    <p>The task is now over.</p>
+    <p>Thank you very much for your participation!</p>
+    <p>Press any key to finish.</p>
+    
+    `;
+
+   }
+   };
+
+
+    //FULL TRIAL
+    var count=0;
+    var full_trial = {
+      timeline: [cross, blank,
+        
+        //PERSPECTIVE
+        {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus:  function(){
+          var pov=jsPsych.timelineVariable('pov');
+          return `
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          ${pov}
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+          `
+          
+        },
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'pov'}
+        }, blank,
+        
+        //NUMBER
+        {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function(){
+          var number=jsPsych.timelineVariable('number');
+          return `
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          ${number}
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+          `
+          
+        },
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'number'}
+        },blank,
+        
+        //IMAGE
+        {
+        type: jsPsychImageKeyboardResponse,
+        stimulus: jsPsych.timelineVariable('stimulus'),
+        choices: ['j','k'],
+        post_trial_gap: 2000,
+        data: {
+        task: 'response',
+        trial_number: jsPsych.timelineVariable('ID'),
+        correct_response: jsPsych.timelineVariable('correct_response')
+        }
+        },
+        
+        ],
+        timeline_variables:complete_stimuli,
+        sample: {
+          type: 'custom',
+          fn: function(t){
+            return seq_def[whichseq].slice(0,64);
+          }
+      },
+      on_finish: function(data){
+      data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+    }
+    };
+
+    //SECOND FULL TRIAL
+    var second_count=0;
+    var second_full_trial = {
+      timeline: [cross, blank,
+        
+        //PERSPECTIVE
+        {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus:  function(){
+          var pov=jsPsych.timelineVariable('pov');
+          return `
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          ${pov}
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+          `
+          
+        },
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'pov'}
+        }, blank,
+        
+        //NUMBER
+        {
+        type: jsPsychHtmlKeyboardResponse,
+        stimulus: function(){
+          var number=jsPsych.timelineVariable('number');
+          return `
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          ${number}
+          <p>&emsp;</p>
+          <p>&emsp;</p>
+          <p>${true_a}=true&emsp;&emsp;&emsp;${false_a}=false<p>
+          `
+          
+        },
+        choices: "NO_KEYS",
+        trial_duration: 750,
+        data: {task: 'number'}
+        },blank,
+        
+        //IMAGE
+        {
+        type: jsPsychImageKeyboardResponse,
+        stimulus: jsPsych.timelineVariable('stimulus'),
+        choices: ['j','k'],
+        post_trial_gap: 2000,
+        data: {
+        task: 'response',
+        trial_number: jsPsych.timelineVariable('ID'),
+        correct_response: jsPsych.timelineVariable('correct_response')
+        }
+        },
+        
+        ],
+        timeline_variables:complete_stimuli,
+        sample: {
+          type: 'custom',
+          fn: function(t){
+            return seq_def[whichseq].slice(64,128);
+          }
+      },
+      on_finish: function(data){
+      data.correct = jsPsych.pluginAPI.compareKeys(data.response, data.correct_response);
+    }
+    };
+
+
+    jatos.addAbortButton();
+
+    /* create timeline */
+    var timeline = [];
+
+    //timeline.push(testseqq);
+    timeline.push(preload);
+    timeline.push(welcome);
+    timeline.push(instructions1);
+    timeline.push(instructions2);
+    timeline.push(instructions3);
+    timeline.push(instructions4);
+    timeline.push(all_examples);
+    timeline.push(instructions7);
+    timeline.push(example_trials);
+    timeline.push(feedback);
+    timeline.push(if_well_done);
+    timeline.push(if_slow);
+    timeline.push(if_unaccurate);
+    timeline.push(full_trial);
+    timeline.push(if_well_done_pause);
+    timeline.push(if_slow_pause);
+    timeline.push(if_unaccurate_pause);
+    timeline.push(new_trial);
+    timeline.push(second_full_trial);
+    //timeline.push(end_block);
+    timeline.push(end_block);
+
+
+    jsPsych.run(timeline);
+
+
+
+
+    });
+
+  </script>
+</html>
